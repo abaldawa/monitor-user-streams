@@ -32,10 +32,14 @@ async function canWatch( req, res ) {
         err,
         userObj;
 
+    // ----------------------- 1. Input validation --------------------------------------------------------
     if( !userId || typeof userId !== "string" ) {
         return res.status(400).json({canWatch: false, message: `Missing 'userId' from the request body.`});
     }
+    // ---------------------------------- 1 END -----------------------------------------------------------
 
+
+    // ------------------------------ 2. Query userStreamObj ----------------------------------------------
     [err, userObj] = await formatPromiseResult( UserStreamsModel.getUserStreamObj({userId}) );
 
     if(err) {
@@ -45,7 +49,10 @@ async function canWatch( req, res ) {
     if(!userObj) {
         return res.status(404).json({canWatch: false, message: `userId: ${userId} not found`});
     }
+    // ------------------------------------------ 2. END --------------------------------------------------
 
+
+    // ---------- 3. If noOfStreams < 3 then increase the counter and send success response ---------------
     if( userObj.noOfStreams < 3 ) {
         [err] = await formatPromiseResult( UserStreamsModel.updateConcurrentUserStreams({userId}) );
 
@@ -55,6 +62,7 @@ async function canWatch( req, res ) {
 
         return res.json({canWatch: true})
     }
+    // ---------------------------------------- 3. END ----------------------------------------------------
 
     return res.status(403).json({canWatch: false, message: `Concurrent stream limit exceeded. Only 3 concurrent streams are allowed`});
 }
@@ -84,10 +92,14 @@ async function stopWatching( req, res ) {
         err,
         userObj;
 
+    // ----------------------- 1. Input validation --------------------------------------------------------
     if( !userId || typeof userId !== "string" ) {
         return res.status(400).send(`Missing 'userId' from the request body.`);
     }
+    // ------------------------------------ 1. END --------------------------------------------------------
 
+
+    // ----------------------- 2. Reduce the counter by 1 -------------------------------------------------
     [err, userObj] = await formatPromiseResult(
                              UserStreamsModel.updateConcurrentUserStreams({
                                  userId,
@@ -102,6 +114,7 @@ async function stopWatching( req, res ) {
     if(!userObj) {
         return res.status(404).send(`userId: ${userId} not found`);
     }
+    // ------------------------------------ 2. END -------------------------------------------------------
 
     res.json(userObj);
 }
